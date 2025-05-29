@@ -26,14 +26,6 @@ library(dplyr)
 
 ```
 
-
-```{r}
-d1 <- read.csv('../../inferself/human_data/study2/solving2.csv')
-d2 <- read.csv('../../inferself/human_data/study2/solving.csv')
-```
-
-
-
 # Load participant data
 ```{r}
 env_levels =  as.character(1:15)

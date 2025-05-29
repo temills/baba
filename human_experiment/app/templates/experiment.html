@@ -142,18 +142,6 @@
             }
         }
 
-        /*
-        Basically show each of the kinds of things you need to do in tutorial
-        make x is y (where y is win)
-        make x is y (where y is you)
-        break wall is stop
-        make x is win
-        break/make x is you
-        break water is sink
-        make x is float
-        They will get levels where they have to apply the same concepts in superficially different grids
-        */
- 
         var tutorial_instructions = [
             ['<p>Welcome!<br>In this task, you will play a series of games like the one shown below.<br>Here, you should see a <i>baba</i> object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> and a <i>flag</i> object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;">.<br>You should also see words which read "baba is you" and "flag is win."<br>These words specify the rules of the game.<br>They mean that you control the baba object, and need to reach the flag object to win.<br>Use the <b>arrow keys</b> on your keyboard to try it out!</p>', 
             '<p>Great job!<br>You won the game by moving the baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> to the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"></p>'],
@@ -186,30 +174,6 @@
             '<p>Great job!<br>You turned the wall objects <img src="' + image_urls["wall"] + '" style="width:18px; height:18px; vertical-align:middle;"> into flag objects <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
 
         ]
-
-/*
-        var tutorial_instructions = [
-        ['<p>Welcome! In this task, you will play a series of games like the one shown below.<br>You can move using the <b>arrow keys</b> on your keyboard.<br>Try it out!</p>', 
-        '<p>Great job!<br>You won the game by moving the baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> to the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"></p>'],
-        ['<p>Now try this one.<br>Notice that the words in the grid have changed.<br>In general, the words in the grid specify the rules of the game.<br>You control the object that <i>is you</i>, and try to reach an object that <i>is win</i>.</p>', 
-        '<p>Great job!<br>You won the game by moving the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> to the baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;">.</p>'],
-        ['<p>While playing the game, you can move the words to <b>change the rules.</b><br>3 words in a row can make a rule.<br>Make the rule "flag is rock" in the grid below by aligning the words.<br>Then move to the rock object.<br>If you get stuck, you can click the reset button.</p>', 
-        '<p>Great job!<br>You turned the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> into a rock object <img src="' + image_urls["rock"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
-        ['<p>Rules can be made up of words arranged left to right or top to bottom, and the same word can be in multiple rules.<br>Try forming the rule "keke is baba" in the grid below by aligning the words vertically.<br>Then move to the flag object.<br></p>', 
-        '<p>Great job!<br>You turned the keke object <img src="' + image_urls["keke"] + '" style="width:18px; height:18px; vertical-align:middle;"> into a baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
-        ['<p>You can also break rules.<br>The rule "wall is stop" means you cannot move through the wall objects.<br>Try moving to the flag object.<br>Then see what happens when you break the "wall is stop" rule by misaligning the words.</p>', 
-        '<p>Great job!<br>You broke the "wall is stop" rule to reach the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;">.</p>'],
-        ['<p>You can change which the win object by changing the rules.<br>Try forming the rule "flag is win".</p>', 
-        '<p>Great job!<br>You formed the rule "flag is win."</p>'],
-        ['<p>You can change which object you control by changing the rules.<br>Try forming the rule "rock is you" in the grid below.<br>Then, move to the flag object.<br>Remember that a rule becomes inactive once you break it. Click reset if you get stuck.</p>', 
-        '<p>Great job!<br>You formed the rule "rock is you."</p>'],
-        ['<p>The "water is sink" rule means that objects that move onto water objects will disappear.<br>Try moving to the flag object.<br>Then see what happens when you break the "water is sink" rule.</p>', 
-        '<p>Great job!<br>You broke the rule "water is sink."</p>'],
-        ['<p>If an object "is float", it means that the object will not sink.<br>Try moving to the flag object.<br>Then see what happens when you form the rule "baba is float".</p>', 
-        '<p>Great job!<br>You formed the rule "baba is float."</p>'],
-    ]
-*/
-
 
         var tutorial_trial = {
             type: jsPsychBabaTutorial,
@@ -308,13 +272,7 @@
                                        'What is the meaning of this word? <img src="' + image_urls["stop_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
                                        'What is the meaning of this word? <img src="' + image_urls["float_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
                                        'What is the meaning of this word? <img src="' + image_urls["sink_word"] + '" style="width:28px; height:28px; vertical-align:middle;">']
-                               
-        /*                             
-        ["<b>3 words</b> arranged <b>horizontally</b> in which the first word is an <b>object name</b>, the second word is <i>is</i>, and the third word is either an object name or a property",
-            "<b>3 words</b> arranged <b>horizontally or vertically</b> in which the first word is an <b>object name or a property</b>, the second word is <i>is</i>, and the third word is either an object name or a property",
-            '<b>3 words</b> arranged <b>horizontally or vertically</b> in which the first word is an <b>object name</b>, the second word is <i>is</i>, and the third word is either an object name or a property',
-            "<b>3 or 4 words</b> arranged <b>horizontally or vertically</b> in which the first word is an <b>object name</b>, the second word is <i>is</i>, and the third word is either an object name or a property"],
-        */    
+                                   
         var rule_options1 = [`<img src='` + image_urls["you_is_baba"] + `'>`,
                              `<img src='` + image_urls["rock_is_baba"] + `'>`,
                              `<img src='` + image_urls["baba_obj_is_rock"] + `'>`]
@@ -398,7 +356,6 @@
             var d = {}
             d["actions"] = data["actions"]
             d["action_times"] = data["action_times"]
-            //d["grids"] = data["grids"] //should we save grids?
             d["trial_start_time"] = data["trial_start_time"]
             d["game_end_time"] = data["game_end_time"]
             d["game_type"] = data["game_type"]
@@ -502,8 +459,7 @@
                 data
             }));
         }
-        //game_types = get_stimuli()
-        //var timeline = [preload, run_trials]
+
         var timeline = [preload, get_id, run_tutorial, instructions_loop, run_trials, finish_experiment]
         jsPsych.run(timeline);
 
