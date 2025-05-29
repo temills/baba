@@ -1,0 +1,310 @@
+---
+title: "Run Baba is You data analyses"
+output: html_document
+---
+
+```{r, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.width=4, fig.height=3,fig.align = "center",cache=TRUE)
+library(ggplot2)
+library(reshape)
+library(grid)
+library(lubridate)
+library(gridExtra)
+library(patchwork)
+library(reghelper)
+library(jsonlite)
+library(conflicted)
+library(robustbase)
+library(tidylog)
+library(tidyr)
+library(hash)
+library(png)
+library(purrr)
+library(ppcor)
+library(rsample)
+library(dplyr) 
+
+```
+
+
+```{r}
+d1 <- read.csv('../../inferself/human_data/study2/solving2.csv')
+d2 <- read.csv('../../inferself/human_data/study2/solving.csv')
+```
+
+
+
+# Load participant data
+```{r}
+env_levels =  as.character(1:15)
+
+giveup_time <- 600
+
+df_human <- read.csv("data/clean_data.csv") %>%
+            mutate(is_tutorial = is_tutorial=="True") %>%
+            filter(!is_tutorial) %>%
+            group_by(sid) %>%
+            mutate(n_games = n()) %>%
+            mutate(n_gave_up = sum(gave_up)) %>%
+            ungroup() %>%
+            filter(n_games == 15) %>%
+            mutate(game_idx=as.numeric(game_idx)) %>%
+            group_by(sid, game_idx) %>%
+            mutate(game_time = min(game_time, giveup_time)) %>%
+            mutate(distr_type=as.character(distr_type)) %>%
+            ungroup()
+
+nums <- as.integer(sub("Env", "", df_human$env_type))
+df_human$env_type <- nums
+df_human$env_type = factor(df_human$env_type,
+                          levels =  env_levels)
+df_human$game_type <- gsub("Env", "", df_human$game_type)
+
+# Exclude participants who gave up on over 1/4 of games
+print(length(unique(df_human$sid)))
+df_human <- df_human %>% filter(n_gave_up < 4)
+print(length(unique(df_human$sid)))
+
+prog_df <- df_human %>%
+          group_by(game_type)%>%
+          summarize(count=n()) %>%
+          pivot_wider(names_from=game_type, values_from=count)
+cat(toJSON(prog_df))
+
+```
+
+# Solving times by subj
+```{r}
+ggplot(df_human) +
+  geom_histogram(aes(x=game_time)) +
+  geom_vline(xintercept=giveup_time, linetype="dashed") +
+  facet_wrap(~sid)
+
+```
+
+# Solving times by game
+```{r}
+ggplot(df_human) +
+  geom_boxplot(aes(x=distr_type, y=game_time, group=distr_type, color=env_type)) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  facet_wrap(~env_type, nrow=2) +
+  theme_light() +
+  theme(strip.text = element_blank()) +
+  ylab("Solving time (seconds)") +
+  xlab("Distractor variant")
+
+```
+
+# Load model data
+```{r}
+load_model_df <- function(model_name) {
+  df <- read.csv(paste0("../models/output/runs/", model_name, "_summ.csv")) %>%
+        mutate(env_type = stringr::str_extract(env_name, "(?<=Env)\\d+"),
+               distr_type = stringr::str_extract(env_name, "(?<=D)\\d+"))
+  df$env_type = factor(df_flat$env_type, levels = env_levels)
+  return(df)
+}
+
+
+df_flat <- load_model_df("flat")
+df_mepomdp <- load_model_df("mepomdp")
+
+
+ggplot(df_flat) +
+  geom_boxplot(aes(x=distr_type, y=n_calls, group=distr_type)) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  facet_wrap(~env_type) +
+   ggtitle("Flat")
+
+ggplot(df_me) +
+  geom_boxplot(aes(x=distr_type, y=n_calls, group=distr_type)) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  facet_wrap(~env_type) +
+      ggtitle("mePOMDP")
+```
+
+# Model vs human solving times
+```{r, fig.width=12}
+
+avatar_move_envs = unique((df_human %>% 
+                           select(c(env_type, centering_type)) %>%
+                           distinct() %>%
+                           filter((str_detect(centering_type, 'you|float'))))$env_type)
+
+get_df_human_model <- function(df_model, df_human, n_boot = 1000) {
+  # summarize human data (median, mean, SD)
+  df_human_summ <- df_human %>%
+                   group_by(env_type, distr_type) %>%
+                   summarise(median_game_time = median(game_time),
+                             mean_game_time = mean(game_time),
+                             mean_log_game_time = mean(log(game_time)),
+                             sd_game_time = sd(game_time),
+                             boot = list(bootstraps(tibble(game_time = game_time), times = n_boot)),
+                             log_boot = list(bootstraps(tibble(log_game_time = log(game_time)), times = n_boot)),
+                             .groups = 'drop') %>%
+                   rowwise() %>%
+                   mutate(ci = list({means <- map_dbl(boot$splits, ~mean(analysis(.x)$game_time))
+                               quantile(means, probs = c(0.025, 0.975))}),
+                          ci_lower_game_time = ci[1],
+                          ci_upper_game_time = ci[2],
+                          log_ci = list({means <- map_dbl(log_boot$splits, ~mean(analysis(.x)$log_game_time))
+                                        quantile(means, probs = c(0.025, 0.975))}),
+                          log_ci_lower_game_time = log_ci[1],
+                          log_ci_upper_game_time = log_ci[2]) %>%
+                   select(-boot, -ci, -log_ci)
+
+  df_model_summ <- df_model %>%
+                   group_by(env_type, distr_type) %>%
+                   summarise(model_mean_n_calls = mean(n_calls),
+                            model_mean_log_n_calls = mean(log(n_calls)),
+                            model_median_n_calls = median(n_calls),
+                            model_sd_n_calls = sd(n_calls),
+                            .groups = "drop")
+
+  df_comb <- df_model_summ %>%
+             right_join(df_human_summ, by = c("env_type", "distr_type"))
+
+  df_comb$env_type <- factor(df_comb$env_type, levels = env_levels)
+  return(df_comb)
+}
+
+
+df_flat_comb <- get_df_human_model(df_flat, df_human) %>% mutate(model = "Flat agent")
+df_me_comb <- get_df_human_model(df_me, df_human) %>% mutate(model = "mePOMDP agent")
+df_comb <- bind_rows(df_flat_comb, df_me_comb)
+df_r2 <- df_comb %>%
+          group_by(model) %>%
+          summarise(r2 = summary(lm(model_mean_n_calls ~ mean_game_time, data = cur_data()))$r.squared,
+                    logr2 = summary(lm(model_mean_log_n_calls ~ mean_log_game_time, data = cur_data()))$r.squared,
+                    .groups = "drop") %>%
+          mutate(label = paste0("R² = ", round(r2, 3)), log_label = paste0("R² = ", round(logr2, 3)), x = Inf, y = -Inf)
+```
+
+# Run correlation tests
+```{r}
+# Raw
+cor.test(x=df_flat_comb$model_mean_n_calls, y=df_flat_comb$mean_game_time)
+cor.test(x=df_me_comb$model_mean_n_calls, y=df_me_comb$mean_game_time)
+# Log-scaled
+cor.test(x=df_flat_comb$model_mean_log_n_calls, y=df_flat_comb$mean_log_game_time)
+cor.test(x=df_me_comb$model_mean_log_n_calls, y=df_me_comb$mean_log_game_time)
+
+wide_df <- df_comb %>% group_by(env_type, distr_type, model) %>%
+           summarize(model_mean_log_n_calls = mean(model_mean_log_n_calls),
+                     mean_log_game_time = mean(mean_log_game_time)) %>%
+           ungroup() %>%
+           pivot_wider(names_from=model, values_from=model_mean_log_n_calls) %>%
+           rename("flat" = "Flat agent", "mepomdp" = "mePOMDP agent", "human" = "mean_log_game_time")
+
+cor.test(x=wide_df$flat, y=wide_df$mepomdp)
+
+pcor.test(wide_df$human, wide_df$mepomdp, wide_df$flat)
+pcor.test(wide_df$human, wide_df$flat, wide_df$mepomdp)
+
+summary(lm(wide_df$human ~ wide_df$flat + wide_df$mepomdp))
+```
+
+# Plot
+```{r}
+p1 <- ggplot(df_comb, aes(x = model_mean_n_calls,
+                    y = mean_game_time,
+                    color = env_type,
+                    shape = distr_type)) +
+  geom_point(size=2) +
+  geom_text(data = df_r2, aes(x = x, y = y, label = label),
+            inherit.aes = FALSE, hjust = 1.1, vjust = -0.9,
+            fontface = "italic", size = 4) +
+  geom_line(aes(group = env_type),  linetype="dashed", alpha=0.5, linewidth = 0.4) +
+  geom_errorbar(aes(ymin = ci_lower_game_time,#mean_game_time - sd_game_time,
+                    ymax = ci_upper_game_time), #mean_game_time + sd_game_time),
+                 alpha=0.3,
+                width = 0) +
+  labs(
+    x = "Path-finding calls",
+    y = "Human solving time"
+  ) +
+  guides(
+    color = guide_legend(ncol = 3),
+    shape = guide_legend(ncol = 2)
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Add border
+    panel.grid = element_blank(),                                              # Remove grid lines
+    strip.background = element_blank(),                                        # Remove facet label background
+    strip.text = element_text(size=16),                                  # Optional: style facet label text
+    legend.position = "right",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+  ) +
+   scale_color_discrete(name = "Game type") +
+   scale_shape_manual(name = "Distractor variant",
+                     values = c("0" = 16, "1" = 17),  # or choose other shapes
+                     labels = c("0" = "low", "1" = "high")) +
+  facet_wrap(~model, scales="free")
+
+ggsave("figs/model_vs_human_solving_times.png", p1, width=10, height=4, bg="white")
+
+
+p2 <- ggplot(df_comb, aes(x = model_mean_log_n_calls,
+                    y = mean_log_game_time,
+                    color = env_type,
+                    shape = distr_type)) +
+  geom_point(size=2) +
+  geom_text(data = df_r2, aes(x = x, y = y, label = log_label),
+            inherit.aes = FALSE, hjust = 1.1, vjust = -0.9,
+            fontface = "italic", size = 4) +
+  geom_line(aes(group = env_type),  linetype="dashed", alpha=0.5, linewidth = 0.4) +
+  geom_errorbar(aes(ymin = log_ci_lower_game_time,
+                    ymax = log_ci_upper_game_time),
+                 alpha=0.3,
+                width = 0) +
+  labs(
+    x = "log(Path-finding calls)",
+    y = "log(Human solving time)"
+  ) +
+  
+  guides(
+    color = guide_legend(ncol = 3),
+    shape = guide_legend(ncol = 2)
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Add border
+    panel.grid = element_blank(),                                              # Remove grid lines
+    strip.background = element_blank(),                                        # Remove facet label background
+    strip.text = element_text(size=16),                                  # Optional: style facet label text
+    legend.position = "right",
+    legend.box = "vertical",
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+  ) +
+   scale_color_discrete(name = "Game type") +
+   scale_shape_manual(name = "Distractor variant",
+                     values = c("0" = 16, "1" = 17),  # or choose other shapes
+                     labels = c("0" = "low", "1" = "high")) +
+  facet_wrap(~model, scales="free")
+
+ggsave("figs/log_model_vs_human_solving_times.png", p2, width=10, height=4, bg="white")
+
+```
+
+
+```{r}
+p1_noleg <- p1 + theme(legend.position = "none")
+p2_noleg <- p2 + theme(legend.position = "none")
+
+legend <- cowplot::get_legend(
+  p1 + theme(
+    legend.position = "right",
+    legend.box = "vertical"
+  )
+)
+final_plot <- (p1_noleg / p2_noleg) | wrap_elements(legend)
+final_plot <- final_plot + plot_layout(widths = c(4, 1))
+
+ggsave("figs/all_model_vs_human_solving_times.png", final_plot,
+       width = 11, height = 8, bg = "white")
+
+```

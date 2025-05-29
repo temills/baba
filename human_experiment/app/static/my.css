@@ -1,0 +1,14 @@
+
+.canvas-container {
+    position: relative;
+}
+
+#rotatingCanvas,
+#staticCanvas {
+    position: absolute;
+    left: 0px;
+}
+
+#rotatingCanvas {
+    z-index: 1; /* Place staticCanvas on top of rotatingCanvas */
+}

@@ -1,0 +1,6 @@
+__pycache__/
+scratch/
+instance/
+human_experiment/app/run_local.py
+
+analysis/figs/videos/

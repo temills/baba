@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Win the game!</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='jspsych/jspsych.css') }}">
+    </head>
+    <body>
+        <script src="{{ url_for('static', filename='jspsych/jspsych.js') }}"></script>
+   	    <script src="{{ url_for('static', filename='jspsych/plugin-html-keyboard-response.js') }}"></script>
+        <script src="{{ url_for('static', filename='jspsych/plugin-html-button-response.js') }}"></script>
+    	<script src="{{ url_for('static', filename='jspsych/plugin-fullscreen.js') }}"></script>
+    	<script src="{{ url_for('static', filename='jspsych/plugin-instructions.js') }}"></script>
+    	<script src="{{ url_for('static', filename='jspsych/plugin-preload.js') }}"></script>
+    	<script src="{{ url_for('static', filename='jspsych/plugin-survey.js') }}"></script>
+    	<script src="{{ url_for('static', filename='jspsych/plugin-survey-text.js') }}"></script>
+    	<script src="{{ url_for('static', filename='jspsych/plugin-survey-multi-choice.js') }}"></script>
+	    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    </body> 
+    <script type="module">
+
+        import jsPsychBaba from "{{ url_for('static', filename='jspsych/plugin-baba.js') }}";
+        import jsPsychBabaTutorial from "{{ url_for('static', filename='jspsych/plugin-baba-tutorial.js') }}";
+
+        var jsPsych = initJsPsych({});
+
+        var completion_code = "C1HBP7SI"
+        var internal_id = jsPsych.randomization.randomID(10)
+        var subject_id = "TEST"
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+            return array
+        }
+       var socket = io.connect("http://52.90.254.164", {path: "/puzzle_game/socket.io"});//, transports: ["websocket"]});
+
+        // no more env 6
+        // 1 0-rule (0), 5 1-rule (1-5), 4 2-rule (7-10)
+        // For each, choose from 4 
+        // store, for each env, D0, D1, D2, D3
+
+        //var game_types = ["Env0D1", "Env0D2", "Env0D3", "Env1D1", "Env1D2", "Env1D3", "Env2D1", "Env2D2", "Env2D3", "Env3D1", "Env3D2", "Env3D3", "Env4D1", "Env4D2", "Env4D3", "Env5D1", "Env5D2", "Env5D3", "Env6D1", "Env6D2", "Env6D3", "Env7D1", "Env7D2", "Env7D3", "Env8D1", "Env8D2", "Env8D3", "Env9D1", "Env9D2", "Env9D3", "Env10D1", "Env10D2", "Env10D3"]
+        //var simple_game_types = ["Env1", "Env2", "Env3", "Env4", "Env5", "Env6"]
+        //var complex_game_types = ["Env0D1", "Env0D2", "Env0D3", "Env1D1", "Env1D2", "Env1D3", "Env2D1", "Env2D2", "Env2D3", "Env3D1", "Env3D2", "Env3D3", "Env4D1", "Env4D2", "Env4D3", "Env5D1", "Env5D2", "Env5D3", "Env6D1", "Env6D2", "Env6D3", "Env7", "Env7D1", "Env7D2", "Env7D3", "Env8", "Env8D1", "Env8D2", "Env8D3", "Env9", "Env9D1", "Env9D2", "Env9D3", "Env10", "Env10D1", "Env10D2", "Env10D3"]
+        //var game_types = ["Env0"].concat(shuffle(simple_game_types)).concat(shuffle(complex_game_types))
+        //function get_rand_game(tp) {
+        //    var strs = ["Env"+tp, "Env"+tp+"D1", "Env"+tp+"D2", "Env"+tp+"D3"]
+        //    return shuffle(strs)[0]
+        //}
+        //Array.from({length: 11}, (_, i) => get_rand_game(String(i)));
+        //var game_types = shuffle(game_types);
+        //console.log(game_types)
+
+        var game_types = []
+        var game_idx = 0
+        function get_stimuli() {
+            var res = ""
+            $.ajax({
+                type: 'post',
+                async: false,
+                url: "/puzzle_game/get_stim",
+                data: "",
+                contentType: "application/json; charset=utf-8",
+                traditional: true,
+                success: function(result) {  
+                    res = result
+                }
+            })
+            return res
+        }
+
+        var tutorial_idx = 0
+        var tutorial_game_types = ["Tutorial1", "Tutorial2", "Tutorial3", "Tutorial4", "Tutorial5", "Tutorial6", "Tutorial7", "Tutorial8", "Tutorial9", "Tutorial10"]
+
+        var bonus_points = 0
+
+        var image_urls = {
+            "baba": "{{ url_for('static', filename='imgs/keke_img/baba_obj.png') }}", 
+            "wall": "{{ url_for('static', filename='imgs/keke_img/wall_obj.png') }}", 
+            "fwall": "{{ url_for('static', filename='imgs/keke_img/wall_obj.png') }}", 
+            "rock": "{{ url_for('static', filename='imgs/keke_img/rock_obj.png') }}", 
+            "grass": "{{ url_for('static', filename='imgs/keke_img/grass_obj.png') }}", 
+            "flag": "{{ url_for('static', filename='imgs/keke_img/flag_obj.png') }}", 
+            "empty": "{{ url_for('static', filename='imgs/keke_img/empty.png') }}", 
+            "border": "{{ url_for('static', filename='imgs/keke_img/border.png') }}", 
+            "flag_word": "{{ url_for('static', filename='imgs/keke_img/flag_word.png') }}", 
+            "floor": "{{ url_for('static', filename='imgs/keke_img/floor_obj.png') }}", 
+            "baba_word": "{{ url_for('static', filename='imgs/keke_img/baba_word.png') }}", 
+            "wall_word": "{{ url_for('static', filename='imgs/keke_img/wall_word.png') }}", 
+            "water_word": "{{ url_for('static', filename='imgs/keke_img/water_word.jpeg') }}", 
+            "goop": "{{ url_for('static', filename='imgs/keke_img/goop_obj.png') }}",
+            "fwater": "{{ url_for('static', filename='imgs/keke_img/goop_obj.png') }}",
+            "water": "{{ url_for('static', filename='imgs/keke_img/goop_obj.png') }}",
+            "stop_word": "{{ url_for('static', filename='imgs/keke_img/stop_word.png') }}", 
+            "win_word": "{{ url_for('static', filename='imgs/keke_img/win_word.png') }}", 
+            "grass_word": "{{ url_for('static', filename='imgs/keke_img/grass_word.png') }}", 
+            "is_word": "{{ url_for('static', filename='imgs/keke_img/is_word.png') }}", 
+            "rock_word": "{{ url_for('static', filename='imgs/keke_img/rock_word.png') }}",
+            "keke_word": "{{ url_for('static', filename='imgs/keke_img/keke_word.png') }}",
+            "keke": "{{ url_for('static', filename='imgs/keke_img/keke_obj.png') }}",
+            "you_word": "{{ url_for('static', filename='imgs/keke_img/you_word.png') }}",
+            "stop_word": "{{ url_for('static', filename='imgs/keke_img/stop_word.png') }}",
+            "float_word": "{{ url_for('static', filename='imgs/keke_img/float_word.jpeg') }}",
+            "goop_word": "{{ url_for('static', filename='imgs/keke_img/water_word.jpeg') }}",
+            "sink_word": "{{ url_for('static', filename='imgs/keke_img/sink_word.jpeg') }}",
+            "congrats": "{{ url_for('static', filename='imgs/congrats.jpeg') }}",
+            "baba_obj_is_rock": "{{ url_for('static', filename='imgs/rule_imgs/baba_obj_is_rock.png') }}",
+            "flag_is_win": "{{ url_for('static', filename='imgs/rule_imgs/flag_is_win.png') }}",
+            "flag_obj_is_win": "{{ url_for('static', filename='imgs/rule_imgs/flag_obj_is_win.png') }}",
+            "rock_is_baba": "{{ url_for('static', filename='imgs/rule_imgs/rock_is_baba.png') }}",
+            "sink_is_water": "{{ url_for('static', filename='imgs/rule_imgs/sink_is_water.png') }}",
+            "water_is_stop": "{{ url_for('static', filename='imgs/rule_imgs/water_is_stop.png') }}",
+            "water_obj_is_sink": "{{ url_for('static', filename='imgs/rule_imgs/water_obj_is_sink.png') }}",
+            "win_is_flag": "{{ url_for('static', filename='imgs/rule_imgs/win_is_flag.png') }}",
+            "you_is_baba": "{{ url_for('static', filename='imgs/rule_imgs/you_is_baba.png') }}"
+        }
+
+        var images = Object.values(image_urls) 
+        
+        var preload = {
+            type: jsPsychPreload,
+            auto_preload: true,
+            images: images
+        }
+
+        var get_id = {
+            type: jsPsychSurveyText,
+            preamble: function() {
+                var html = "<div>Welcome!<br>We need your consent to proceed.</div><br>"
+                html += "<div style=text-align:left>You have been invited to take part in a research study involving a prediction game. By completing this study, you are participating in a study being performed by cognitive scientists in the MIT Department of Brain and Cognitive Science. The purpose of this research is to understand how people make predictions. You must be at least 18 years old to participate. There are neither specific benefits nor anticipated risks associated with participation in this study. Your participation in this study is completely voluntary and you can withdraw at any time by simply exiting the study. Choosing not to participate or withdrawing will result in no penalty. Your anonymity is assured; the researchers who have requested your participation will not receive any personal information about you, and any information you provide will not be shared in association with any personally identifying information.<br><br>If you have questions about this research, please contact the researchers by sending an email to temills@mit.edu. These researchers will do their best to communicate with you in a timely, professional, and courteous manner. If you have questions regarding your rights as a research subject, or if problems arise which you do not feel you can discuss with the researchers, please contact the MIT Institutional Review Board.<br>Your participation in this research is voluntary. You may discontinue participation at any time during the research activity. You may print a copy of this consent form for your records.</div>"
+                html += "<br><div>To indicate your consent, please enter your Prolific Worker ID below.<br></div>"
+                return [html]
+            },
+            questions: [{prompt: "", name: "subject_id", required: true}],
+            on_finish: function(data){
+                subject_id = data['response']['subject_id']
+            }
+        }
+
+        /*
+        Basically show each of the kinds of things you need to do in tutorial
+        make x is y (where y is win)
+        make x is y (where y is you)
+        break wall is stop
+        make x is win
+        break/make x is you
+        break water is sink
+        make x is float
+        They will get levels where they have to apply the same concepts in superficially different grids
+        */
+ 
+        var tutorial_instructions = [
+            ['<p>Welcome!<br>In this task, you will play a series of games like the one shown below.<br>Here, you should see a <i>baba</i> object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> and a <i>flag</i> object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;">.<br>You should also see words which read "baba is you" and "flag is win."<br>These words specify the rules of the game.<br>They mean that you control the baba object, and need to reach the flag object to win.<br>Use the <b>arrow keys</b> on your keyboard to try it out!</p>', 
+            '<p>Great job!<br>You won the game by moving the baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> to the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"></p>'],
+            
+            ['<p>Now try this one.<br>Notice that the words in the grid have changed.<br>They now read "flag is you" and "baba is win."<br>This means that the rules of the game have changed: you control the flag object, and need to reach the baba object to win.</p>',
+            '<p>Great job!<br>You won the game by moving the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> to the baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;">.</p>'],
+            
+            ['<p>While playing the game, you can move the words to <b>change the rules.</b><br>3 words in a row can make a rule.<br>In the grid below, there is no win object.<br>To win the game, first form the rule "flag is win" by aligning the words.<br>Then, move to the flag object.<br>If you get stuck, you can click the reset button.</p>',
+            '<p>Great job!<br>You formed the rule "flag is win."</p>'],
+        
+            ['<p>You can also break rules.<br>In the grid below, baba is you, flag is win, and wall is stop.<br>The rule "wall is stop" means you cannot move through the wall objects.<br>Try breaking the "wall is stop" rule to reach the flag object.</p>', 
+            '<p>Great job!<br>You broke the "wall is stop" rule to reach the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;">.</p>'],
+
+            ['<p>You can change the rules to replace objects with other objects.<br>In the grid below, rock is win, but there is no rock object <img src="' + image_urls["rock"] + '" style="width:18px; height:18px; vertical-align:middle;">.<br>Make the rule "flag is rock" to turn the flag object into a rock object.<br>Then, move to the rock object.<br></p>', 
+            '<p>Great job!<br>You turned the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> into a rock object <img src="' + image_urls["rock"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
+
+            ['<p>Note that rules can be made up of words arranged left to right or top to bottom, and the same word can be in multiple rules.<br>In the grid below, rock is win, but there is no rock object <img src="' + image_urls["rock"] + '" style="width:18px; height:18px; vertical-align:middle;">.<br>Make the rule "flag is rock" to turn the flag object into a rock object.<br>Then, move to the rock object.<br></p>', 
+            '<p>Great job!<br>You turned the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> into a rock object <img src="' + image_urls["rock"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
+            
+            ['<p>You can change the rules to change which object you control.<br>In the grid below, flag is win and baba is you, but baba cannot reach the flag object.<br>Try forming the rule "rock is you". Then, move to the flag object.<br>Remember that a rule becomes inactive once you break it. Click reset if you get stuck.</p>', 
+            '<p>Great job!<br>You formed the rule "rock is you."</p>'],
+
+            ['<p>In the grid below, baba is you, keke is win, and water is sink.<br>The "water is sink" rule means that objects disappear when moved onto water objects.<br>Try moving to the keke object <img src="' + image_urls["keke"] + '" style="width:18px; height:18px; vertical-align:middle;"> .<br>Then try first breaking the "water is sink" rule.</p>', 
+            '<p>Great job!<br>You broke the rule "water is sink."</p>'],
+
+            ['<p>In the grid below, baba is you, wall is win, and water is sink.<br>If an object "is float", it means that the object will not sink.<br>Form the rule "baba is float" to reach wall object.</p>', 
+            '<p>Great job!<br>You formed the rule "baba is float."</p>'],
+
+            ['<p>In the grid below, baba is you, flag is win, and wall is stop.<br>You need to reach a flag object to win, but there is no flag object.<br>Remember, you can change the rules to replace objects with other objects.<br>Try forming the rule "wall is flag" to turn the wall objects into flag objects.</p>', 
+            '<p>Great job!<br>You turned the wall objects <img src="' + image_urls["wall"] + '" style="width:18px; height:18px; vertical-align:middle;"> into flag objects <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
+
+        ]
+
+/*
+        var tutorial_instructions = [
+        ['<p>Welcome! In this task, you will play a series of games like the one shown below.<br>You can move using the <b>arrow keys</b> on your keyboard.<br>Try it out!</p>', 
+        '<p>Great job!<br>You won the game by moving the baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> to the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"></p>'],
+        ['<p>Now try this one.<br>Notice that the words in the grid have changed.<br>In general, the words in the grid specify the rules of the game.<br>You control the object that <i>is you</i>, and try to reach an object that <i>is win</i>.</p>', 
+        '<p>Great job!<br>You won the game by moving the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> to the baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;">.</p>'],
+        ['<p>While playing the game, you can move the words to <b>change the rules.</b><br>3 words in a row can make a rule.<br>Make the rule "flag is rock" in the grid below by aligning the words.<br>Then move to the rock object.<br>If you get stuck, you can click the reset button.</p>', 
+        '<p>Great job!<br>You turned the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;"> into a rock object <img src="' + image_urls["rock"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
+        ['<p>Rules can be made up of words arranged left to right or top to bottom, and the same word can be in multiple rules.<br>Try forming the rule "keke is baba" in the grid below by aligning the words vertically.<br>Then move to the flag object.<br></p>', 
+        '<p>Great job!<br>You turned the keke object <img src="' + image_urls["keke"] + '" style="width:18px; height:18px; vertical-align:middle;"> into a baba object <img src="' + image_urls["baba"] + '" style="width:18px; height:18px; vertical-align:middle;"> by changing the rules.</p>'],
+        ['<p>You can also break rules.<br>The rule "wall is stop" means you cannot move through the wall objects.<br>Try moving to the flag object.<br>Then see what happens when you break the "wall is stop" rule by misaligning the words.</p>', 
+        '<p>Great job!<br>You broke the "wall is stop" rule to reach the flag object <img src="' + image_urls["flag"] + '" style="width:18px; height:18px; vertical-align:middle;">.</p>'],
+        ['<p>You can change which the win object by changing the rules.<br>Try forming the rule "flag is win".</p>', 
+        '<p>Great job!<br>You formed the rule "flag is win."</p>'],
+        ['<p>You can change which object you control by changing the rules.<br>Try forming the rule "rock is you" in the grid below.<br>Then, move to the flag object.<br>Remember that a rule becomes inactive once you break it. Click reset if you get stuck.</p>', 
+        '<p>Great job!<br>You formed the rule "rock is you."</p>'],
+        ['<p>The "water is sink" rule means that objects that move onto water objects will disappear.<br>Try moving to the flag object.<br>Then see what happens when you break the "water is sink" rule.</p>', 
+        '<p>Great job!<br>You broke the rule "water is sink."</p>'],
+        ['<p>If an object "is float", it means that the object will not sink.<br>Try moving to the flag object.<br>Then see what happens when you form the rule "baba is float".</p>', 
+        '<p>Great job!<br>You formed the rule "baba is float."</p>'],
+    ]
+*/
+
+
+        var tutorial_trial = {
+            type: jsPsychBabaTutorial,
+            instructions: function() {
+                return tutorial_instructions[tutorial_idx]
+            },
+            game_type: function() {
+                return tutorial_game_types[tutorial_idx]
+            },
+            socket: function() {
+                return socket
+            },
+            image_urls: image_urls,
+            on_finish: function(data) {
+                record_trial_data(data, "tutorial".concat(tutorial_idx))
+            }
+        }
+        var run_tutorial = {
+            timeline: [tutorial_trial],
+            loop_function: function(){
+                tutorial_idx = tutorial_idx + 1
+                if (tutorial_idx < tutorial_game_types.length) {
+                    return true
+                } else {
+                    //after last one, get stimuli
+                    game_types = get_stimuli()
+                }
+            }
+        }
+
+        var instructions = {
+            type: jsPsychInstructions,
+            pages: function() {
+                return ([
+                `<p><b>Additional instructions:</b><br>These are the different objects.<br>Each object can have different properties depending on the rules.<br><br>
+                    <img src="` + image_urls["baba_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> : <img src="` + image_urls["baba"] + `" style="width:28px; height:28px; vertical-align:middle;"><br>
+                    <img src="` + image_urls["keke_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> : <img src="` + image_urls["keke"] + `" style="width:28px; height:28px; vertical-align:middle;"><br> 
+                    <img src="` + image_urls["flag_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> : <img src="` + image_urls["flag"] + `" style="width:28px; height:28px; vertical-align:middle;"><br> 
+                    <img src="` + image_urls["rock_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> : <img src="` + image_urls["rock"] + `" style="width:28px; height:28px; vertical-align:middle;"><br> 
+                    <img src="` + image_urls["wall_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> : <img src="` + image_urls["wall"] + `" style="width:28px; height:28px; vertical-align:middle;"><br> 
+                    <img src="` + image_urls["water_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> : <img src="` + image_urls["water"] + `" style="width:28px; height:28px; vertical-align:middle;"><br> 
+                </p>`,
+                `<p>These are the different object properties.<br><br>
+                    The <img src="` + image_urls["you_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> property means that you control this object.<br>
+                    The <img src="` + image_urls["win_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> property means that this is the win object. Reach this object to win the game.<br>
+                    The <img src="` + image_urls["stop_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> property means that objects cannot move through this object.<br>
+                    The <img src="` + image_urls["float_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> property means that this object can float.<br>
+                    The <img src="` + image_urls["sink_word"] + `" style="width:28px; height:28px; vertical-align:middle;"> property means that objects that cannot float will disappear if moved onto this object.<br>
+                    <br>
+                    <b>Any object can have any property!</b>
+                    <br>
+                </p>`,
+
+                `<p>Note that rules always contain 3 words.<br>The first word is an object name, the second word is "is", and the third word is either an object name or a property.<br>` +
+                `So, for example, <img src='` + image_urls["you_is_baba"] + `'> is <i>not</i> a valid rule, because the first word, <img src='` + image_urls["you_word"] + `' style='width:28px; height:28px; vertical-align:middle;'> is a property rather than an object name.<br>` +
+                `Similarly, <img src='` + image_urls["win_is_flag"] + `'> is <i>not</i> a valid rule, because the first word, <img src='` + image_urls["win_word"] + `' style='width:28px; height:28px; vertical-align:middle;'> is a property rather than an object name.<br>
+                </p>`,
+
+                `<br><img src='` + image_urls["water_obj_is_sink"] + `'> is <i>not</i> a valid rule, because the first item is an object (<img src='` + image_urls["water"] + `' style='width:28px; height:28px; vertical-align:middle;'>) rather than an object name (<img src='` + image_urls["water_word"] + `' style='width:28px; height:28px; vertical-align:middle;'>).<br>` +
+                `Similarly, <img src='` + image_urls["flag_obj_is_win"] + `' style='vertical-align:middle;'> is <i>not</i> a valid rule, because the first item is an object (<img src='` + image_urls["flag"] + `' style='width:28px; height:28px; vertical-align:middle;'>) rather than an object name (<img src='` + image_urls["flag_word"] + `' style='width:28px; height:28px; vertical-align:middle;'>).<br>
+                </p>`,
+
+                `<br>In contrast, <img src='` + image_urls["rock_is_baba"] + `'> <i>is</i> a valid rule, because the first word is an object name, the second word is <i>is</i>, and the third word is an object name.<br>` +
+                `Similarly, <img src='` + image_urls["water_is_stop"] + `' style='vertical-align:middle;'> <i>is</i> a valid rule, because the first word is an object name, the second word is <i>is</i>, and the third word is a property.<br>
+                </p>`,
+                ])
+            },
+            show_clickable_nav: true
+        }
+        var meanings = [`<img src='` + image_urls["baba"] + `' style='width:28px; height:28px; vertical-align:middle;'>`,
+                        `<img src='` + image_urls["keke"] + `' style='width:28px; height:28px; vertical-align:middle;'>`,
+                        `<img src='` + image_urls["flag"] + `' style='width:28px; height:28px; vertical-align:middle;'>`,
+                        `<img src='` + image_urls["rock"] + `' style='width:28px; height:28px; vertical-align:middle;'>`,
+                        `<img src='` + image_urls["wall"] + `' style='width:28px; height:28px; vertical-align:middle;'>`,
+                        `<img src='` + image_urls["water"] + `' style='width:28px; height:28px; vertical-align:middle;'>`,
+                        'a property that means that you control this object',
+                        'a propery that means that this is the win object',
+                        'a property that means that objects cannot move through this object',
+                        'a property that means that this object can float',
+                        'a property that means that objects that cannot float will disappear if moved onto this object']
+
+        var comprehension_check_all_correct = false
+        var n_loops = 0
+        var comprehension_check_correct = []
+        var comprehension_questions = ['Remember, rules are made up of <b>3 words</b> arranged left to right or top to bottom in which the first word is an <b>object name</b>, the second word is <i>is</i>, and the third word is either an object name or a property.<br>Part 1: One of these is a valid rule. Which one?',
+                                       'Part 2: One of these is a valid rule. Which one?',
+                                       'Part 3: One of these is a valid rule. Which one?',
+                                       'What is the meaning of this word? <img src="' + image_urls["baba_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["keke_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["flag_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["rock_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["wall_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["water_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["you_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["win_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["stop_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["float_word"] + '" style="width:28px; height:28px; vertical-align:middle;">',
+                                       'What is the meaning of this word? <img src="' + image_urls["sink_word"] + '" style="width:28px; height:28px; vertical-align:middle;">']
+                               
+        /*                             
+        ["<b>3 words</b> arranged <b>horizontally</b> in which the first word is an <b>object name</b>, the second word is <i>is</i>, and the third word is either an object name or a property",
+            "<b>3 words</b> arranged <b>horizontally or vertically</b> in which the first word is an <b>object name or a property</b>, the second word is <i>is</i>, and the third word is either an object name or a property",
+            '<b>3 words</b> arranged <b>horizontally or vertically</b> in which the first word is an <b>object name</b>, the second word is <i>is</i>, and the third word is either an object name or a property',
+            "<b>3 or 4 words</b> arranged <b>horizontally or vertically</b> in which the first word is an <b>object name</b>, the second word is <i>is</i>, and the third word is either an object name or a property"],
+        */    
+        var rule_options1 = [`<img src='` + image_urls["you_is_baba"] + `'>`,
+                             `<img src='` + image_urls["rock_is_baba"] + `'>`,
+                             `<img src='` + image_urls["baba_obj_is_rock"] + `'>`]
+
+        var rule_options2 = [`<img src='` + image_urls["flag_is_win"] + `'>`,
+                             `<img src='` + image_urls["win_is_flag"] + `'>`,
+                             `<img src='` + image_urls["flag_obj_is_win"] + `'>`]
+
+        var rule_options3 = [`<img src='` + image_urls["water_obj_is_sink"] + `'>`,
+                             `<img src='` + image_urls["sink_is_water"] + `'>`,
+                             `<img src='` + image_urls["water_is_stop"] + `'>`]
+        
+        var comprehension_question_options = [rule_options1, rule_options2, rule_options3,
+                                              [meanings[4], meanings[0], meanings[7]],
+                                              [meanings[1], meanings[9], meanings[2]],
+                                              [meanings[3], meanings[2], meanings[5]],
+                                              [meanings[10], meanings[6], meanings[3]],
+                                              [meanings[8], meanings[4], meanings[1]],
+                                              [meanings[5], meanings[7], meanings[3]],
+                                              [meanings[1], meanings[6], meanings[8]],
+                                              [meanings[7], meanings[2], meanings[6]],
+                                              [meanings[4], meanings[9], meanings[8]],
+                                              [meanings[1], meanings[9], meanings[6]],
+                                              [meanings[7], meanings[10], meanings[4]]]
+        var comprehension_question_answers = [rule_options1[1], rule_options2[0], rule_options3[2],
+                                              meanings[0], meanings[1], meanings[2], meanings[3], meanings[4], meanings[5], meanings[6], meanings[7], meanings[8], meanings[9], meanings[10]]
+        var comprehension_check = {
+            type: jsPsychSurveyMultiChoice,
+            preamble: ["<p align='center'><b>Please check your understanding before you begin!<br>If you don't know the answers, you will have the chance to read the instructions again.</b></p>"],
+            questions: function() {
+                var qs = []
+                for (var i=0;i<comprehension_questions.length;i++) {
+                    qs.push({
+                        prompt: comprehension_questions[i],
+                        options: comprehension_question_options[i],
+                        required: true
+                    })
+                }
+                return qs
+            },
+            on_finish: function (data) {
+                var responses = data.response;
+                comprehension_check_correct = []
+                comprehension_check_all_correct = true
+                for (var i=0;i<comprehension_questions.length;i++) {
+                    comprehension_check_correct.push(responses[('Q'+i)] == comprehension_question_answers[i])
+                    if (!comprehension_check_correct[i]) {
+                        comprehension_check_all_correct = false
+                    }
+                }
+            }
+        }
+        var comprehension_feedback = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function() {
+                if (!comprehension_check_all_correct) {
+                    var str = "<b>You answered these questions incorrectly:</b><br>"
+                    for (var i=0; i<comprehension_check_correct.length; i++) {
+                        if (!comprehension_check_correct[i]) {
+                        str = str + comprehension_questions[i] + "<br>"
+                        }
+                    }
+                    str = str + "<br><b>Please reread the instructions and try again!</b><br></br>"
+                } else {
+                    str = 'Great work, you\'re ready to begin!<br>You will play ' + game_types.length + ' games.<br><b>For each game that you solve faster than 50% of other participants, you will earn a bonus of $0.25!<br>(Max bonus: $3.75)<br></b><br><br>'
+                }
+                return str
+            },
+            choices: ['Continue']
+        }
+        var instructions_loop = {
+            timeline: [instructions, comprehension_check, comprehension_feedback],
+            loop_function: function(data) {
+                n_loops = n_loops+1
+                return !comprehension_check_all_correct;
+            }
+        }
+
+
+        function record_trial_data(data, game_idx) {
+            var d = {}
+            d["actions"] = data["actions"]
+            d["action_times"] = data["action_times"]
+            //d["grids"] = data["grids"] //should we save grids?
+            d["trial_start_time"] = data["trial_start_time"]
+            d["game_end_time"] = data["game_end_time"]
+            d["game_type"] = data["game_type"]
+            d["subject_id"] = subject_id
+            d["game_idx"] = game_idx
+            d["agent_pos"] = data["agent_pos"]
+            d["internal_id"] = internal_id
+            d["row_id"] = internal_id.concat("_", game_idx) 
+            d["exp_phase"] = "trial"
+            save_data(d)
+        }
+
+        var game_trial = {
+            type: jsPsychBaba,
+            game_type: function() {
+                return game_types[game_idx]
+            },
+            title: function() {
+                return "Game " + (game_idx+1) + "/" + game_types.length 
+            },
+            socket: function() {
+                return socket
+            },
+            image_urls: image_urls, 
+            on_finish: function(data) {
+                record_trial_data(data, game_idx)
+            }
+        }
+
+        var run_trials = {
+            timeline: [game_trial],
+            //runs after completion of timeline
+            loop_function: function(){
+                game_idx = game_idx + 1
+                if (game_idx < game_types.length) {
+                    return true
+                }
+            }
+        }
+        
+        var get_comments = {
+            type: jsPsychSurveyText,
+            on_start: function() {
+                console.log("starting!")
+            },
+            preamble: "<br>Please share some comments about your experience participating in the study. <b>Thank you!</b>",
+            questions: [{prompt: "How did you approach the games? What strategies did you use?", rows: 4, columns: 80},
+                        {prompt: "What did you find difficult or frustrating? Do you feel like you improved over time?", rows: 4, columns: 80},
+                        {prompt: "Did some kinds of games feel harder than others?", rows: 4, columns: 80},
+                        {prompt: "Please share any other feedback or comments you might have.", rows: 4, columns: 80}]
+        }
+        var demo1 = {
+            type: jsPsychSurveyText,
+            preamble: 'Finally, please provide us with some demographic information.',
+            questions: [{prompt: "How old are you?", required: true}, {prompt: "What is your native language?", required: true}, {prompt: "What is your nationality?", required: true}, {prompt: "In which country do you live?", required: true}, {prompt: "What is your gender identity?", required:true}],
+        };
+        var demo2 = {
+            type: jsPsychSurveyMultiChoice,
+            preamble: "",
+            questions: [
+                {prompt: "Are you a student?", options: ["Yes","No"], required: true},
+                {prompt: "What is your education level?", options: ["Grade/elementary school","High school","Some college or university","College or university degree","Graduate degree, Masters","PhD"], required: true}
+            ],
+            on_finish: function() {
+                var data = {}
+                data.subject_id = subject_id
+                data.internal_id = internal_id
+                data.exp_phase = 'subject_info';
+                var lastData = jsPsych.data.get().last(3).values();
+                data.comments = lastData[0]['response']
+                var demo1 = lastData[1]['response'];
+                var demo2 = lastData[2]['response'];
+                data.age = demo1['Q0'];
+                data.language = demo1['Q1'];
+                data.nationality = demo1['Q2'];
+                data.country = demo1['Q3'];
+                data.gender = demo1['Q4'];
+                data.student = demo2['Q0'];
+                data.education = demo2['Q1'];
+                data.bonus = bonus_points
+                data.n_instruction_loops = n_loops
+                save_data(data)
+            },
+        };
+        var debrief = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: "<h4>Thank you for your participation!</h4><h4>In order to complete this HIT, you must enter the code below into Prolific.</h4><h4>Your secret completion code is:<br><br>" + completion_code + "<br><br>Copy this code now.</h4><h4>Once you've copied it, click the button below to leave this window.</h4>",
+            choices: ['Finish']
+        };
+
+        var finish_experiment = {
+            timeline: [get_comments, demo1, demo2, debrief]
+        }
+
+        function save_data(data) {
+            var url = "/puzzle_game/"; 
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({
+                data
+            }));
+        }
+        //game_types = get_stimuli()
+        //var timeline = [preload, run_trials]
+        var timeline = [preload, get_id, run_tutorial, instructions_loop, run_trials, finish_experiment]
+        jsPsych.run(timeline);
+
+    </script>
+</html>
+
+
