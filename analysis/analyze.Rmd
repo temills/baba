@@ -90,16 +90,16 @@ ggplot(df_human) +
 # Load model data
 ```{r}
 load_model_df <- function(model_name) {
-  df <- read.csv(paste0("../models/output/runs/", model_name, "_summ.csv")) %>%
+  df <- read.csv(paste0("../models/output/", model_name, "_summ.csv")) %>%
         mutate(env_type = stringr::str_extract(env_name, "(?<=Env)\\d+"),
                distr_type = stringr::str_extract(env_name, "(?<=D)\\d+"))
-  df$env_type = factor(df_flat$env_type, levels = env_levels)
+  df$env_type = factor(df$env_type, levels = env_levels)
   return(df)
 }
 
 
 df_flat <- load_model_df("flat")
-df_mepomdp <- load_model_df("mepomdp")
+df_me <- load_model_df("mepomdp")
 
 
 ggplot(df_flat) +
@@ -290,13 +290,18 @@ p2_noleg <- p2 + theme(legend.position = "none")
 legend <- cowplot::get_legend(
   p1 + theme(
     legend.position = "right",
-    legend.box = "vertical"
+    legend.box = "vertical",
   )
 )
-final_plot <- (p1_noleg / p2_noleg) | wrap_elements(legend)
+
+
+final_plot <- ((p1_noleg / p2_noleg) + plot_annotation(tag_levels = 'A')) | wrap_elements(legend) #
+
 final_plot <- final_plot + plot_layout(widths = c(4, 1))
 
+
+#final_plot
 ggsave("figs/all_model_vs_human_solving_times.png", final_plot,
-       width = 11, height = 8, bg = "white")
+        width = 11, height = 8, bg = "white")
 
 ```
