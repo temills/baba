@@ -220,19 +220,20 @@ p1 <- ggplot(df_comb, aes(x = model_mean_n_calls,
     shape = guide_legend(ncol = 2)
   ) +
   theme_minimal(base_size = 16) +
+  theme_classic() +
   theme(
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Add border
-    panel.grid = element_blank(),                                              # Remove grid lines
-    strip.background = element_blank(),                                        # Remove facet label background
-    strip.text = element_text(size=16),                                  # Optional: style facet label text
+    panel.grid = element_blank(),                     
+    strip.background = element_blank(),                              
+    strip.text = element_text(size=16),                              
     legend.position = "right",
     legend.box = "vertical",
+    axis.title = element_text(size=16),
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 10),
   ) +
    scale_color_discrete(name = "Game type") +
    scale_shape_manual(name = "Distractor variant",
-                     values = c("0" = 16, "1" = 17),  # or choose other shapes
+                     values = c("0" = 16, "1" = 17), 
                      labels = c("0" = "low", "1" = "high")) +
   facet_wrap(~model, scales="free")
 
@@ -262,11 +263,12 @@ p2 <- ggplot(df_comb, aes(x = model_mean_log_n_calls,
     shape = guide_legend(ncol = 2)
   ) +
   theme_minimal(base_size = 16) +
+  theme_classic() +
   theme(
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Add border
-    panel.grid = element_blank(),                                              # Remove grid lines
-    strip.background = element_blank(),                                        # Remove facet label background
-    strip.text = element_text(size=16),                                  # Optional: style facet label text
+    panel.grid = element_blank(),                                        
+    strip.background = element_blank(),                             
+    strip.text = element_text(size=16), 
+    axis.title = element_text(size=16),
     legend.position = "right",
     legend.box = "vertical",
     legend.title = element_text(size = 10),
@@ -274,7 +276,7 @@ p2 <- ggplot(df_comb, aes(x = model_mean_log_n_calls,
   ) +
    scale_color_discrete(name = "Game type") +
    scale_shape_manual(name = "Distractor variant",
-                     values = c("0" = 16, "1" = 17),  # or choose other shapes
+                     values = c("0" = 16, "1" = 17),  
                      labels = c("0" = "low", "1" = "high")) +
   facet_wrap(~model, scales="free")
 
@@ -284,8 +286,8 @@ ggsave("figs/log_model_vs_human_solving_times.png", p2, width=10, height=4, bg="
 
 
 ```{r}
-p1_noleg <- p1 + theme(legend.position = "none")
-p2_noleg <- p2 + theme(legend.position = "none")
+p1_noleg <- p1 + theme(legend.position = "none") + ggtitle("A: Linear") +   theme(plot.title = element_text(size = 18))
+p2_noleg <- p2 + theme(legend.position = "none") + ggtitle("B: Logarithmic")+   theme(plot.title = element_text(size = 18))
 
 legend <- cowplot::get_legend(
   p1 + theme(
@@ -294,13 +296,9 @@ legend <- cowplot::get_legend(
   )
 )
 
-
-final_plot <- ((p1_noleg / p2_noleg) + plot_annotation(tag_levels = 'A')) | wrap_elements(legend) #
-
+final_plot <- (p1_noleg / p2_noleg) | wrap_elements(legend) #
 final_plot <- final_plot + plot_layout(widths = c(4, 1))
 
-
-#final_plot
 ggsave("figs/all_model_vs_human_solving_times.png", final_plot,
         width = 11, height = 8, bg = "white")
 
