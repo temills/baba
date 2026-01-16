@@ -96,7 +96,7 @@ def model_play(env, model_tp="mepomdp", transpose=True, fps=30, zoom=None, callb
 
         pygame.display.flip()
         clock.tick(fps)
-            
+        time.sleep(0.2)   
     pygame.quit()
     return data, data[-1]
 
@@ -117,11 +117,11 @@ def run_single():
                 #print(time.time()-start)
 
 def run_experiment():
-    out_dir = "models/output/"
+    #out_dir = "models/output/"
     
-    model_n_seeds = {"mepomdp": 50, "flat": 1}
+    model_n_seeds = {"mepomdp": 1, "flat": 1}
     
-    for model_tp in ["mepomdp", "flat"]:
+    for model_tp in ["mepomdp"]:#, "flat"]:
         n_seeds = model_n_seeds[model_tp]
             
         all_data = []
@@ -159,5 +159,5 @@ if __name__ == "__main__":
     
     register_envs()
     
-    run_single()
-    #run_experiment()
+    #run_single()
+    run_experiment()

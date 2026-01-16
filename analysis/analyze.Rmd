@@ -6,16 +6,17 @@ output: html_document
 ```{r, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE,fig.width=4, fig.height=3,fig.align = "center",cache=TRUE)
 library(ggplot2)
-library(reshape)
+#library(reshape)
 library(grid)
 library(lubridate)
 library(gridExtra)
 library(patchwork)
 library(reghelper)
 library(jsonlite)
-library(conflicted)
+#library(conflicted)
 library(robustbase)
-library(tidylog)
+#library(tidylog)
+library(stringr)
 library(tidyr)
 library(hash)
 library(png)
@@ -186,12 +187,12 @@ wide_df <- df_comb %>% group_by(env_type, distr_type, model) %>%
                      mean_log_game_time = mean(mean_log_game_time)) %>%
            ungroup() %>%
            pivot_wider(names_from=model, values_from=model_mean_log_n_calls) %>%
-           rename("flat" = "Flat agent", "mepomdp" = "mePOMDP agent", "human" = "mean_log_game_time")
+           rename(flat = `Flat agent`, mepomdp = `mePOMDP agent`, human = `mean_log_game_time`)
 
 cor.test(x=wide_df$flat, y=wide_df$mepomdp)
 
-pcor.test(wide_df$human, wide_df$mepomdp, wide_df$flat)
-pcor.test(wide_df$human, wide_df$flat, wide_df$mepomdp)
+print(pcor.test(wide_df$human, wide_df$mepomdp, wide_df$flat))
+print(pcor.test(wide_df$human, wide_df$flat, wide_df$mepomdp))
 
 summary(lm(wide_df$human ~ wide_df$flat + wide_df$mepomdp))
 ```

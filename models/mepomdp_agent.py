@@ -477,8 +477,8 @@ class Agent:
                     [pos0, pos1, down(pos2,1)]
                 ]
             
-        # Prune locations with block positions are:
-        #   out of bounds
+        # Prune locations with block positions that:
+        #   are out of bounds
         #   require moving a rule block away from a border
         #   require moving a rule block that is in another rule
         all_rule_locs = [[tuple(pos) for pos in l] for l in all_rule_locs] # convert positions to tuples

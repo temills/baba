@@ -2,7 +2,7 @@
 
 __pycache__/
 scratch/
-instance/
+raw_data/
 human_experiment/app/run_local.py
 
 analysis/figs/videos/
