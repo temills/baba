@@ -101,27 +101,19 @@ def model_play(env, model_tp="mepomdp", transpose=True, fps=30, zoom=None, callb
     return data, data[-1]
 
 
-
-def run_single():
-    n_runs_per_env = 1
-    for model_tp in ["flat"]:#, "flat"]:
-        for run in range(n_runs_per_env):
-            for env_tp in [Env7D0]:
-                np.random.seed(run)
-                print(env_tp.__name__)
-                print("---------")
-                env = make("env/"+ env_tp.__name__)
-                #start=time.time()
-                data, summ_data = model_play(env, model_tp, 1)
-                print(summ_data)
-                #print(time.time()-start)
+def run_single(model_tp="mepomdp", env_tp=Env7D0):
+    print(env_tp.__name__)
+    print("---------")
+    env = make("env/"+ env_tp.__name__)
+    data, summ_data = model_play(env, model_tp, 1)
+    print(summ_data)
 
 def run_experiment():
-    #out_dir = "models/output/"
+    out_dir = "models/output/"
     
     model_n_seeds = {"mepomdp": 1, "flat": 1}
     
-    for model_tp in ["mepomdp"]:#, "flat"]:
+    for model_tp in ["mepomdp", "flat"]:
         n_seeds = model_n_seeds[model_tp]
             
         all_data = []
@@ -156,8 +148,6 @@ def register_envs():
         register('env/' +  env.__name__, env)
 
 if __name__ == "__main__":
-    
     register_envs()
-    
-    #run_single()
-    run_experiment()
+    run_single()
+    #run_experiment()

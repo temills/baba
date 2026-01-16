@@ -4,10 +4,11 @@ from pygame import VIDEORESIZE
 import pandas as pd
 import numpy as np
 import argparse
-from game.baba import make
+#from game.baba import make
 from game.baba.my_envs import *
 from game.baba.grid import BabaIsYouGrid
 from game.baba.registration import register
+from game.baba.registration import make
 
 def play(env, transpose=True, fps=30, zoom=None, callback=None, keys_to_action=None):
     if keys_to_action is None:

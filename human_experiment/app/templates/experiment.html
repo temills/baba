@@ -37,25 +37,12 @@
             }
             return array
         }
-       var socket = io.connect("http://52.90.254.164", {path: "/puzzle_game/socket.io"});//, transports: ["websocket"]});
+        const LOCAL = window.location.hostname === "localhost"
+        const SOCKET_HOST = LOCAL
+                            ? "http://localhost:8005"
+                            : "";
 
-        // no more env 6
-        // 1 0-rule (0), 5 1-rule (1-5), 4 2-rule (7-10)
-        // For each, choose from 4 
-        // store, for each env, D0, D1, D2, D3
-
-        //var game_types = ["Env0D1", "Env0D2", "Env0D3", "Env1D1", "Env1D2", "Env1D3", "Env2D1", "Env2D2", "Env2D3", "Env3D1", "Env3D2", "Env3D3", "Env4D1", "Env4D2", "Env4D3", "Env5D1", "Env5D2", "Env5D3", "Env6D1", "Env6D2", "Env6D3", "Env7D1", "Env7D2", "Env7D3", "Env8D1", "Env8D2", "Env8D3", "Env9D1", "Env9D2", "Env9D3", "Env10D1", "Env10D2", "Env10D3"]
-        //var simple_game_types = ["Env1", "Env2", "Env3", "Env4", "Env5", "Env6"]
-        //var complex_game_types = ["Env0D1", "Env0D2", "Env0D3", "Env1D1", "Env1D2", "Env1D3", "Env2D1", "Env2D2", "Env2D3", "Env3D1", "Env3D2", "Env3D3", "Env4D1", "Env4D2", "Env4D3", "Env5D1", "Env5D2", "Env5D3", "Env6D1", "Env6D2", "Env6D3", "Env7", "Env7D1", "Env7D2", "Env7D3", "Env8", "Env8D1", "Env8D2", "Env8D3", "Env9", "Env9D1", "Env9D2", "Env9D3", "Env10", "Env10D1", "Env10D2", "Env10D3"]
-        //var game_types = ["Env0"].concat(shuffle(simple_game_types)).concat(shuffle(complex_game_types))
-        //function get_rand_game(tp) {
-        //    var strs = ["Env"+tp, "Env"+tp+"D1", "Env"+tp+"D2", "Env"+tp+"D3"]
-        //    return shuffle(strs)[0]
-        //}
-        //Array.from({length: 11}, (_, i) => get_rand_game(String(i)));
-        //var game_types = shuffle(game_types);
-        //console.log(game_types)
-
+        var socket = io(SOCKET_HOST, {path: "/puzzle_game/socket.io"});
         var game_types = []
         var game_idx = 0
         function get_stimuli() {
@@ -398,9 +385,6 @@
         
         var get_comments = {
             type: jsPsychSurveyText,
-            on_start: function() {
-                console.log("starting!")
-            },
             preamble: "<br>Please share some comments about your experience participating in the study. <b>Thank you!</b>",
             questions: [{prompt: "How did you approach the games? What strategies did you use?", rows: 4, columns: 80},
                         {prompt: "What did you find difficult or frustrating? Do you feel like you improved over time?", rows: 4, columns: 80},
@@ -451,6 +435,9 @@
         }
 
         function save_data(data) {
+            if (LOCAL) {
+                return
+            }
             var url = "/puzzle_game/"; 
             var xhr = new XMLHttpRequest();
             xhr.open("POST", url, true);
@@ -459,7 +446,6 @@
                 data
             }));
         }
-
         var timeline = [preload, get_id, run_tutorial, instructions_loop, run_trials, finish_experiment]
         jsPsych.run(timeline);
 

@@ -8,6 +8,7 @@ from collections import defaultdict
 import random
 import redis
 import pickle
+import os
 
 def get_redis_conn():
     return redis.Redis(host='localhost', port=6379, db=0)
@@ -28,8 +29,6 @@ def handle_error(e):
 
 @socketio.on("init_game")
 def init_game(data):
-    print("In init game!")
-    print(data)
     game_type = data.get("game_type")
     env = init_env(game_type)
     r = get_redis_conn()
@@ -59,7 +58,14 @@ def handle_player_action(data):
 @bp.route('/puzzle_game/get_stim', methods=['GET', 'POST'])
 def get_stim():
     result = {}
-    all_stims = Stimuli.query.all()
+    try:
+        all_stims = Stimuli.query.all()
+    except Exception as e:
+        # For local testing without DB
+        all_stims = ["Env1D0", "Env1D1", "Env2D0", "Env2D1", "Env3D0", "Env3D1", "Env4D0", "Env4D1", "Env5D0", "Env5D1", "Env6D0", "Env6D1", "Env7D0", "Env7D1", "Env8D0", "Env8D1", "Env9D0", "Env9D1", "Env10D0", "Env10D1", "Env11D0", "Env11D1", "Env12D0", "Env12D1", "Env13D0", "Env13D1", "Env14D0", "Env14D1", "Env15D0", "Env15D1"]
+        random.shuffle(all_stims)
+        return all_stims[1:10]
+
     if not all_stims:
         return {"error": "No stimuli in DB"}, 404
     stim_by_type = defaultdict(list)

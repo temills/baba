@@ -1,12 +1,12 @@
 from .create_app import create_app, db
 from .dbs import Stimuli
 
-# Init db:
-#from .run import app
-#with app.app_context():
-#   db.create_all()
+# To init db:
+# from .run import app
+#  with app.app_context():
+#     db.create_all()
 
-# Init stim:
+# Init stimuli in DB:
 app = create_app()
 app.app_context().push()
 
